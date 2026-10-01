@@ -27,6 +27,18 @@ class Store:
                 return row
         return None
 
+    def _module_abnormal(self, name: str, rows: list[dict[str, Any]]) -> int:
+        """模块异常量口径。
+
+        升压站以自动判定的负荷越限为准，且列表按站区去重：概览读到的越限数
+        必须与升压站台账一致，因此这里直接复用业务服务的统计口径。
+        """
+        if name == "substation":
+            from app.services.substation import service as substation_service
+
+            return int(substation_service.overload_stats()["overload_stations"])
+        return sum(1 for row in rows if row.get("abnormal"))
+
     def overview(self) -> dict[str, object]:
         modules: list[dict[str, object]] = []
         for name in self.module_names():
@@ -35,7 +47,7 @@ class Store:
                 "name": name,
                 "created": len(rows),
                 "pending": sum(1 for row in rows if row.get("pending")),
-                "abnormal": sum(1 for row in rows if row.get("abnormal")),
+                "abnormal": self._module_abnormal(name, rows),
             })
         cards = [
             {"label": "业务模块", "value": len(modules)},
