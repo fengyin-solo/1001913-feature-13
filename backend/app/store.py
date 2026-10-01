@@ -16,7 +16,8 @@ class Store:
         }
 
     def module_names(self) -> list[str]:
-        return sorted(self._tables)
+        # 下划线开头是模块内部用的口径/留档表，不属于业务模块，不进概览
+        return sorted(name for name in self._tables if not name.startswith("_"))
 
     def rows(self, module: str) -> list[dict[str, Any]]:
         return self._tables.setdefault(module, [])
@@ -28,14 +29,25 @@ class Store:
         return None
 
     def overview(self) -> dict[str, object]:
+        # 升压站越限数按站区台账口径取（同站区重复登记只算最近一次），
+        # 保证概览读到的越限数与升压站列表页台账一致
+        from app.services.substation import MODULE as SUBSTATION_MODULE
+        from app.services.substation import service as substation_service
+
+        substation_overloads = substation_service.overload_count()
         modules: list[dict[str, object]] = []
         for name in self.module_names():
             rows = self.rows(name)
+            abnormal = (
+                substation_overloads
+                if name == SUBSTATION_MODULE
+                else sum(1 for row in rows if row.get("abnormal"))
+            )
             modules.append({
                 "name": name,
                 "created": len(rows),
                 "pending": sum(1 for row in rows if row.get("pending")),
-                "abnormal": sum(1 for row in rows if row.get("abnormal")),
+                "abnormal": abnormal,
             })
         cards = [
             {"label": "业务模块", "value": len(modules)},

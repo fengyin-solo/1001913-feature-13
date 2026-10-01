@@ -13,6 +13,7 @@ class PageResult(BaseModel, Generic[T]):
     total: int
     page: int = 1
     size: int = 20
+    stats: dict[str, Any] | None = None
 
 
 class ActionResult(BaseModel):
@@ -146,7 +147,7 @@ class SubstationEntry(BaseModel):
     field_3: str | None = None  # 所属场站
     field_4: str | None = None  # 上次检修日
     field_5: str | None = None  # 值班班组
-    field_6: str | None = None  # 负荷率
+    field_6: str | None = None  # 当前负荷（负荷率=当前负荷/主变容量）
     field_7: str | None = None  # 升压站状态
 
 class ForecastEntry(BaseModel):
